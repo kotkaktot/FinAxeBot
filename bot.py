@@ -12,6 +12,7 @@ import seaborn as sns
 from datetime import datetime, timedelta
 from connections import get_db_session
 from model import Queries
+import time
 
 # init
 session = get_db_session(expire_on_commit=False)
@@ -29,9 +30,11 @@ def matrix(corr_matrix, update, context):
     plt.savefig('corr.png')
     plt.close()
 
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             parse_mode=telegram.ParseMode.MARKDOWN,
+                             text='*Матрица корреляций для портфеля*')
     context.bot.send_photo(chat_id=update.effective_chat.id,
                            photo=open('corr.png', 'rb'),
-                           caption='Матрица корреляции активов на интервале 365 дней',
                            parse_mode=telegram.ParseMode.MARKDOWN)
 
     context.bot.send_message(chat_id=update.effective_chat.id,
@@ -102,9 +105,12 @@ def sharp(ticker, cov_matrix, mean_returns, update, context):
         best_sharp_msg += '{}: {}%\n'.format(i, round(100*max_sharp[i]))
         best_std_msg += '{}: {}%\n'.format(i, round(100*min_std[i]))
 
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             parse_mode=telegram.ParseMode.MARKDOWN,
+                             text='*Оптимальные соотношения акций в портфеле*')
+
     context.bot.send_photo(chat_id=update.effective_chat.id,
                            photo=open('sharp.png', 'rb'),
-                           caption='10000 симуляций на данных за последние 365 дней',
                            parse_mode=telegram.ParseMode.MARKDOWN)
 
     context.bot.send_message(chat_id=update.effective_chat.id,
@@ -236,18 +242,23 @@ def sharp_n_matrix(update, context):
             all_returns_mean = all_returns.mean()
 
             # построения графиков
-            matrix(corr_matrix, update, context)
             sharp(ticker, cov_matrix, all_returns_mean, update, context)
+            time.sleep(3)
+            matrix(corr_matrix, update, context)
         else:
             context.bot.send_message(chat_id=update.effective_chat.id,
                                      parse_mode=telegram.ParseMode.MARKDOWN,
-                                     text='Введите тикеры интересующих Вас компаний через запятую\n'
+                                     text='Данные по одной из компаний списка отсутствуют,'
+                                          ' либо Вы ошиблись в формате ввода.\n'
+                                          'Введите тикеры интересующих Вас компаний через запятую\n\n'
                                           '_Например: AAPL, GAZP.ME, AMZN_')
     except:
         logging.exception("Error")
         context.bot.send_message(chat_id=update.effective_chat.id,
                                  parse_mode=telegram.ParseMode.MARKDOWN,
-                                 text='Введите тикеры интересующих Вас компаний через запятую\n'
+                                 text='Данные по одной из компаний списка отсутствуют,'
+                                      ' либо Вы ошиблись в формате ввода.\n'
+                                      'Введите тикеры интересующих Вас компаний через запятую\n\n'
                                       '_Например: AAPL, GAZP.ME, AMZN_')
 
 
