@@ -29,7 +29,7 @@ current_path = os.path.dirname(os.path.realpath(__file__))
 def sharp(update, context):
     query = update.callback_query
     query.answer()
-    chat, msg_text, first_name, last_name, username, N_YEARS = query.data.split('_')
+    chat, msg_text, N_YEARS = query.data.split('_')
 
     query.edit_message_text(text='You have choose {} year(s) interval. Wait for data.'.format(N_YEARS))
 
@@ -38,9 +38,9 @@ def sharp(update, context):
     db_write_queries(
         [
             chat,
-            first_name,
-            last_name,
-            username,
+            '',
+            '',
+            '',
             msg_text])
 
     RISKY_ASSETS = msg_text.replace(' ', '').strip().split(',')
@@ -214,20 +214,20 @@ def start(update, context):
 def interval(update, context):
     chat = update.effective_chat.id
     msg_text = update.message.text.upper()
-    first_name = update.message.from_user.first_name
-    last_name = update.message.from_user.last_name
-    username = update.message.from_user.username
 
-    keyboard = [[InlineKeyboardButton("1 year", callback_data='{}_{}_{}_{}_{}_{}'
-                                      .format(chat, msg_text, first_name, last_name, username, 1)),
-                 InlineKeyboardButton("3 years", callback_data='{}_{}_{}_{}_{}_{}'
-                                      .format(chat, msg_text, first_name, last_name, username, 3)),
-                 InlineKeyboardButton("5 years", callback_data='{}_{}_{}_{}_{}_{}'
-                                      .format(chat, msg_text, first_name, last_name, username, 5))
-                 ]]
+    try:
+        keyboard = [[InlineKeyboardButton("1 year", callback_data='{}_{}_{}'
+                                          .format(chat, msg_text, 1)),
+                     InlineKeyboardButton("3 years", callback_data='{}_{}_{}'
+                                          .format(chat, msg_text, 3)),
+                     InlineKeyboardButton("5 years", callback_data='{}_{}_{}'
+                                          .format(chat, msg_text, 5))
+                     ]]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    bot.send_message(chat_id=chat, text='Choose historical interval:', reply_markup=reply_markup)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(chat_id=chat, text='Choose historical interval:', reply_markup=reply_markup)
+    except:
+        bot.send_message(chat_id=chat, text='Too many tickers in one request!')
 
 
 def error(update, context):
