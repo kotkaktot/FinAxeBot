@@ -144,4 +144,5 @@ credentials.py
 *.png
 *.logs
 *.sqlite
+bot_old.py
 
