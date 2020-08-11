@@ -1,5 +1,6 @@
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import telegram
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
 import os
 from credentials import token
@@ -14,29 +15,39 @@ from model import Queries
 import time
 
 # init
+bot = telegram.Bot(token)
 session = get_db_session(expire_on_commit=False)
 updater = Updater(token, use_context=True)
-logging.basicConfig(filename='logs.log', level=logging.WARNING)
+logging.basicConfig(filename='bot.logs', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
 current_path = os.path.dirname(os.path.realpath(__file__))
 
 
 def sharp(update, context):
-    msg_text = update.message.text.upper()
+    query = update.callback_query
+    query.answer()
+    chat, msg_text, first_name, last_name, username, N_YEARS = query.data.split('_')
+
+    query.edit_message_text(text='You have choose {} year(s) interval. Wait for data.'.format(N_YEARS))
+
+    N_YEARS = int(N_YEARS)
 
     db_write_queries(
         [
-            update.effective_user.id,
-            update.message.from_user.first_name,
-            update.message.from_user.last_name,
-            update.message.from_user.username,
-            update.message.text])
+            chat,
+            first_name,
+            last_name,
+            username,
+            msg_text])
 
     RISKY_ASSETS = msg_text.replace(' ', '').strip().split(',')
     # RISKY_ASSETS = ['FB', 'TSLA', 'TWTR', 'MSFT']
     # RISKY_ASSETS = ['GAZP.ME', 'LKOH.ME', 'BANE.ME', 'TATN.ME']
 
     # Set up the parameters:
-    N_YEARS = 3
     N_PORTFOLIOS = 10 ** 5
     N_DAYS = 252 * N_YEARS
     RISKY_ASSETS.sort()
@@ -93,7 +104,10 @@ def sharp(update, context):
         portf_rtns_ef = np.delete(portf_rtns_ef, indices_to_skip)
 
         # Plot the Efficient Frontier:
-        MARKS = ['o', 'X', 'd', '*']
+        MARKS_ALL = [".", ",", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8",
+                     "s", "p", "P", "*", "h", "H", "+", "x", "X", "D", "d"]
+        MARKS = MARKS_ALL[:len(RISKY_ASSETS)]
+
         fig, ax = plt.subplots()
         portf_results_df.plot(kind='scatter', x='volatility', y='returns', c='sharpe__ratio',
                               cmap='RdYlGn', ax=ax)
@@ -197,9 +211,37 @@ def start(update, context):
                                   ' require a prefix *.ME*)')
 
 
+def interval(update, context):
+    chat = update.effective_chat.id
+    msg_text = update.message.text.upper()
+    first_name = update.message.from_user.first_name
+    last_name = update.message.from_user.last_name
+    username = update.message.from_user.username
+
+    keyboard = [[InlineKeyboardButton("1 year", callback_data='{}_{}_{}_{}_{}_{}'
+                                      .format(chat, msg_text, first_name, last_name, username, 1)),
+                 InlineKeyboardButton("3 years", callback_data='{}_{}_{}_{}_{}_{}'
+                                      .format(chat, msg_text, first_name, last_name, username, 3)),
+                 InlineKeyboardButton("5 years", callback_data='{}_{}_{}_{}_{}_{}'
+                                      .format(chat, msg_text, first_name, last_name, username, 5))
+                 ]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    bot.send_message(chat_id=chat, text='Choose historical interval:', reply_markup=reply_markup)
+
+
+def error(update, context):
+    """Log Errors caused by Updates."""
+    logger.warning('Update "%s" caused error "%s"', update, context.error)
+
+
 updater.dispatcher.add_handler(CommandHandler('start', start))
-text_handler = MessageHandler(Filters.text, sharp)
+text_handler = MessageHandler(Filters.text, interval)
 updater.dispatcher.add_handler(text_handler)
+updater.dispatcher.add_handler(CallbackQueryHandler(sharp))
+
+# log all errors
+updater.dispatcher.add_error_handler(error)
 
 updater.start_polling()
 updater.idle()
