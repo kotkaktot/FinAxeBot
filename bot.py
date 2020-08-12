@@ -43,6 +43,10 @@ def sharp(update, context):
             '',
             msg_text])
 
+    context.bot.send_message(chat_id=172778155,
+                             parse_mode=telegram.ParseMode.MARKDOWN,
+                             text='New request *{}* from *{}*'.format(msg_text, chat))
+
     RISKY_ASSETS = msg_text.replace(' ', '').strip().split(',')
     # RISKY_ASSETS = ['FB', 'TSLA', 'TWTR', 'MSFT']
     # RISKY_ASSETS = ['GAZP.ME', 'LKOH.ME', 'BANE.ME', 'TATN.ME']
