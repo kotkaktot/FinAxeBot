@@ -3,7 +3,7 @@
 Functionality
 ------------
 
-Small telegram bot for optimazing assets Portfolios.
+Small telegram bot for optimizing assets Portfolios.
 
 Just send /start to @Fin_Axe_Bot
 
