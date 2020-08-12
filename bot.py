@@ -3,7 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 import telegram
 import logging
 import os
-from credentials import token
+from credentials import token, owner_chat
 import pandas as pd
 import yfinance as yf
 import numpy as np
@@ -43,7 +43,7 @@ def sharp(update, context):
             '',
             msg_text])
 
-    context.bot.send_message(chat_id=172778155,
+    context.bot.send_message(chat_id=owner_chat,
                              parse_mode=telegram.ParseMode.MARKDOWN,
                              text='New request *{}* from *{}*'.format(msg_text, chat))
 
